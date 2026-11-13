@@ -26,7 +26,7 @@ EXP1_ALPHA = np.array([-4.0, -2.0])   # alpha_i^1, i=0,1, Sec. 4.2
 EXP1_BETA = np.array([1.0, 1.5])      # beta_i^1, i=0,1, Sec. 4.2
 
 EXP1_N_REF_PAPER = 10_000         # reference Euler/interpolation grid size, Sec. 4.2
-EXP1_N_REF_RUN = 2_000            # grid size used in the executed run (time budget, see RESULTS.md)
+EXP1_N_REF_RUN = 2_000            # grid size used in the executed run, see results/RESULTS.md
 EXP1_N_PATHS_PAPER = 20_000       # Monte Carlo sample size, Sec. 4.2
 EXP1_N_PATHS_RUN = 4_000          # Monte Carlo sample size used in the executed run
 EXP1_M_LEVELS = (2, 3, 4, 5, 6, 7)       # truncation levels M tested, Sec. 4.2
@@ -35,7 +35,7 @@ EXP1_TEST_TIMES = tuple(np.round(np.arange(0.0, 1.0001, 0.05), 4))  # evaluation
 # The paper lists t in {0.0,...,1.0} step 0.1 (Sec. 4.2); the extra midpoints
 # (step 0.05) are off-grid for N=10 and expose the scalloped shape described
 # in the expected outcomes without changing the specified marker times.
-EXP1_STRONG_P = 3                 # p used for strong errors ||.||_p, implementation notes, Sec. 4.2
+EXP1_STRONG_P = 3                 # p used for strong errors ||.||_p, Sec. 4.2
 EXP1_FIT_TIMES = (0.5, 0.75)       # times at which CB^M/(M!)^0.5 is fitted, Sec. 4.2
 EXP1_EPSILON = 0.5                 # optimal summability exponent for the delay equation, Remark 5.5
 EXP1_DISC_M_FIXED = (3, 5)         # M held fixed when studying discretisation error, Sec. 4.2
@@ -54,7 +54,7 @@ EXP2_N_PATHS_PAPER = 20_000
 EXP2_N_PATHS_RUN = 4_000
 EXP2_M_LEVELS = (2, 3, 4, 5, 6, 7)
 EXP2_TEST_TIMES = tuple(np.round(np.arange(0.0, 1.0001, 0.05), 4))
-EXP2_STRONG_P = 3                  # not stated for this section; reuses the p=3 of Sec. 4.2 (uncertainty)
+EXP2_STRONG_P = 3                  # not specified in the paper for Sec. 4.3; reuses the p=3 of Sec. 4.2
 
 # ---------------------------------------------------------------------------
 # Experiment 3: signature volatility model, put option pricing (Sec. 4.4 / 7, p.16, p.28)

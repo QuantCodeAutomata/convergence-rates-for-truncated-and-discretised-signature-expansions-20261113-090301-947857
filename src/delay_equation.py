@@ -5,7 +5,7 @@ of Sec. 4.2 of the paper.
     K_i(t) = sum_k alpha_i^k exp(beta_i^k t), i in {0, 1}, X_0 = x.
 
 ell^DE is built from the tensor-algebra operations of ``src.tensor_algebra``
-following the construction given in the paper's implementation notes:
+following the construction given in Sec. 4.2 of the paper:
 
     c_i = b_i*empty + sum_k alpha_i^k * [0 . exp_(x)(beta_i^k * 0)]
     p   = x*empty + sum_i a_i*(i) - (1/2)(sum_i a_i b_i)*(0)

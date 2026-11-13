@@ -64,7 +64,7 @@ def proposition_4_6_upper(t: float, M: int, H: float, mu: float, p: float) -> fl
             <= kappa_p (t+mu)^{H+1/2} t^{1/2} / (mu Gamma(H+1/2)) * q_t^M / sqrt(2M+1),
 
     using |c_n(t)| sqrt(V_n(t)) <= (t+mu)^{H-1/2} t^{1/2} q_t^n / (Gamma(H+1/2) sqrt(2n+1))
-    and sum_{n>=M} q_t^n = q_t^M (t+mu)/mu (implementation notes, exp_2).
+    and sum_{n>=M} q_t^n = q_t^M (t+mu)/mu (Sec. 4.3 of the paper).
     """
     q_t = t / (t + mu)
     log_gamma_H = gammaln(H + 0.5)
