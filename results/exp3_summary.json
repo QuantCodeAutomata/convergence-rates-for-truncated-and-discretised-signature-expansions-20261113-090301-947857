@@ -1,0 +1,22 @@
+{
+  "N_ref": 2000,
+  "n_paths": 4000,
+  "M_levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "N_levels": [
+    10,
+    50,
+    100,
+    500,
+    1000
+  ],
+  "exact_put_price": 0.12468541604085102,
+  "exact_put_price_se": 0.002979292171999245,
+  "min_pricing_error_abs": 2.9261460496948777e-05,
+  "max_pricing_error_abs": 0.013009706054166445
+}

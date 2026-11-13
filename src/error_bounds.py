@@ -74,29 +74,79 @@ def per_length_claimed_bound(m: int, r: float, t: float, d: int, eps: float, C_s
     return float(np.exp(log_val))
 
 
-def tail_bound_direct(M: int, r: float, t: float, d: int, eps: float, C_star: float = 1.0, m_extra: int = 400) -> float:
-    """Sum_{m>=M+1} C_* x_t^m/(m!)^eps, the tail of Lemma 5.1's per-length bounds."""
+def tail_bound_direct_log(M: int, r: float, t: float, d: int, eps: float, C_star: float = 1.0) -> float:
+    """log Sum_{m>=M+1} C_* x_t^m/(m!)^eps, the log-tail of Lemma 5.1's per-length bounds.
+
+    The summand x_t^m/(m!)^eps keeps growing until m* ~ x_t^{1/eps} before the
+    factorial term takes over (digamma(m*+1) ~ log(x_t)/eps), so for the
+    combinatorial constant x_t and small eps used in Sec. 5.1, m* can be of
+    order 1e3-1e5: a fixed small window of terms never reaches the decaying
+    regime and summing it in linear scale overflows float64. We therefore sum
+    in log-space out to a few multiples of the estimated turning point, which
+    is enough for the tail beyond to be negligible (the terms decay
+    super-factorially past m*), and never exponentiate the full magnitude.
+    """
     x_t = per_length_x_t(r, t, d)
+    if x_t <= 0.0:
+        return -np.inf
+    m_peak = max(float(M + 1), x_t ** (1.0 / eps))
+    m_extra = int(np.clip(4 * m_peak, 400, 2_000_000)) + 1
     ms = np.arange(M + 1, M + 1 + m_extra)
     logs = np.log(C_star) + ms * np.log(x_t) - eps * gammaln(ms + 1)
-    return float(np.exp(logsumexp(logs)))
+    return float(logsumexp(logs))
 
 
-def e_eps_series(y: float, eps: float, n_terms: int = 400) -> float:
-    """E_eps(y) = sum_{j>=0} y^j / (j!)^eps (finite for eps > 0)."""
+def tail_bound_direct(M: int, r: float, t: float, d: int, eps: float, C_star: float = 1.0, m_extra: int = 400) -> float:
+    """Sum_{m>=M+1} C_* x_t^m/(m!)^eps, the tail of Lemma 5.1's per-length bounds.
+
+    Returns ``inf`` when the true value exceeds float64 range; use
+    ``tail_bound_direct_log`` for a comparison that stays finite.
+    """
+    log_val = tail_bound_direct_log(M, r, t, d, eps, C_star)
+    with np.errstate(over="ignore"):
+        return float(np.exp(log_val))
+
+
+def e_eps_series_log(y: float, eps: float) -> float:
+    """log E_eps(y) = log sum_{j>=0} y^j / (j!)^eps (finite for eps > 0).
+
+    The summand y^j/(j!)^eps peaks near j* ~ y^{1/eps} (same combinatorial
+    turning point as in ``tail_bound_direct_log``), which for the large x_t
+    values and small eps used in Sec. 5.1 can be far beyond any fixed small
+    window of terms. We size the window adaptively from y and eps and sum in
+    log-space throughout, so the result stays finite even when E_eps(y)
+    itself would overflow float64.
+    """
+    if y <= 0.0:
+        return 0.0  # E_eps(0) = 1
+    j_peak = max(1.0, y ** (1.0 / eps))
+    n_terms = int(np.clip(4 * j_peak, 400, 2_000_000)) + 1
     js = np.arange(0, n_terms)
-    with np.errstate(divide="ignore"):
-        logs = js * np.log(y) - eps * gammaln(js + 1)
-    logs = logs[np.isfinite(logs)]
-    return float(np.exp(logsumexp(logs)))
+    logs = js * np.log(y) - eps * gammaln(js + 1)
+    return float(logsumexp(logs))
+
+
+def e_eps_series(y: float, eps: float) -> float:
+    """E_eps(y) = sum_{j>=0} y^j / (j!)^eps (finite for eps > 0).
+
+    Linear-space value; overflows to ``inf`` for large y (use
+    ``e_eps_series_log`` when y can be large, as in Lemma 5.1's tail bound).
+    """
+    with np.errstate(over="ignore"):
+        return float(np.exp(e_eps_series_log(y, eps)))
+
+
+def tail_bound_closed_form_log(M: int, B_pq: float, t: float, eps: float, C_star: float = 1.0) -> float:
+    """log (C_* E_eps(B_pq sqrt t) (B_pq sqrt t)^{M+1} / ((M+1)!)^eps) (Lemma 5.1)."""
+    y = B_pq * np.sqrt(t)
+    log_e_eps = e_eps_series_log(y, eps)
+    return float(np.log(C_star) + log_e_eps + (M + 1) * np.log(y) - eps * gammaln(M + 2))
 
 
 def tail_bound_closed_form(M: int, B_pq: float, t: float, eps: float, C_star: float = 1.0) -> float:
     """(C_* E_eps(B_pq sqrt t) (B_pq sqrt t)^{M+1} / ((M+1)!)^eps) (Lemma 5.1)."""
-    y = B_pq * np.sqrt(t)
-    e_eps = e_eps_series(y, eps)
-    log_val = np.log(C_star * e_eps) + (M + 1) * np.log(y) - eps * gammaln(M + 2)
-    return float(np.exp(log_val))
+    with np.errstate(over="ignore"):
+        return float(np.exp(tail_bound_closed_form_log(M, B_pq, t, eps, C_star)))
 
 
 def sigma_N_sq(t: float, N: int, T: float) -> float:

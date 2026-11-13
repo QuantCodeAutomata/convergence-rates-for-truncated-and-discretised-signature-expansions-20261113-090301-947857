@@ -1,0 +1,22 @@
+{
+  "lemma_4_1_markov": {
+    "n_checks": 100,
+    "fraction_holds": 1.0
+  },
+  "lemma_4_2_distribution": {
+    "n_checks": 25,
+    "fraction_holds": 1.0
+  },
+  "theorem_4_3_coherent_risk": {
+    "n_checks": 25,
+    "fraction_holds": 1.0
+  },
+  "theorem_4_4_var_density": {
+    "n_checks": 50,
+    "fraction_holds": 1.0
+  },
+  "theorem_4_4_var_large_alpha": {
+    "n_checks": 50,
+    "fraction_holds": 1.0
+  }
+}

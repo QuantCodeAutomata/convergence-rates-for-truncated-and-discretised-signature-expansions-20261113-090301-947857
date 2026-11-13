@@ -17,6 +17,7 @@ the key () and all operations truncate results to words of length <= max_len.
 
 from __future__ import annotations
 
+import math
 from itertools import product as iter_product
 from typing import Dict, Tuple
 
@@ -147,18 +148,19 @@ def append_letter(ell: Series, letter: int, max_len: int) -> Series:
 
 
 def exp_kernel_series(alpha: float, beta: float, max_len: int) -> Series:
-    """0 exp_(x)(beta * 0) with coefficient alpha: alpha * sum_n beta^n/n! * 0^{n+1}.
+    """0 . exp_{\\otimes}(beta * 0) with coefficient alpha (paper Sec. 4.2).
 
-    Builds the tensor-algebra encoding of one exponential-kernel term
-    alpha * exp(beta * t) used in K_i(t) = sum_k alpha_i^k exp(beta_i^k t)
-    (Sec. 4.2): the word 0^{n+1} carries coefficient alpha * beta^n / n!.
+    exp_{\\otimes}(x) = sum_n x^{\\otimes n}/n! is the CONCATENATION
+    (tensor) exponential. For the single-letter series beta*(0), the n-th
+    concatenation power is beta^n * (0)^{\\otimes n} (the word 0 repeated n
+    times), so exp_{\\otimes}(beta*(0)) = sum_n beta^n/n! * (0)^{\\otimes n}.
+    Concatenating the letter 0 on the left then gives the word 0^{n+1} with
+    coefficient alpha * beta^n / n!.
     """
     out: Series = {}
-    fact = 1.0
     for n in range(0, max_len):
         word = (0,) * (n + 1)
-        out[word] = alpha * (beta ** n) / fact
-        fact *= (n + 1)
+        out[word] = alpha * (beta ** n) / math.factorial(n)
     return {w: c for w, c in out.items() if c != 0.0}
 
 

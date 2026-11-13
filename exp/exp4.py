@@ -24,11 +24,12 @@ from src import config
 from src.error_bounds import (
     per_length_claimed_bound,
     per_length_direct_sum,
+    per_length_x_t,
     sharpness_lower_rhs,
     sharpness_tail_expectation_log,
     sigma_N_sq,
-    tail_bound_closed_form,
-    tail_bound_direct,
+    tail_bound_closed_form_log,
+    tail_bound_direct_log,
 )
 
 RESULTS_DIR = Path(config.RESULTS_DIR)
@@ -58,14 +59,28 @@ def run() -> dict:
     worst_ratio = float(df_per_length["ratio_direct_over_claimed"].max())
 
     # --- Lemma 5.1 tail bound Delta_p^q: direct tail sum vs closed-form E_eps bound ---
+    # Both tails are summed and compared in log-space: the raw per-length
+    # bound x_t^m/(m!)^eps keeps growing until m* ~ x_t^{1/eps} (of order
+    # 1e3-1e5 here) before the factorial term dominates, so the true tail
+    # value is astronomically large long before it is negligible and
+    # overflows float64 if exponentiated; only the logarithm is meaningful.
     tail_rows = []
     for t in (0.5, 1.0):
         for eps in (0.3, 0.5):
             for M in (2, 3, 5, 7, 10, 15):
-                direct = tail_bound_direct(M, r, t, d, eps)
-                B_pq = np.sqrt(2 * (r + 2) * np.sqrt(1 + d / 2.0) * (d + 2 * np.sqrt((1 + d / 2.0) * t)))
-                closed = tail_bound_closed_form(M, B_pq, t, eps)
-                tail_rows.append({"t": t, "eps": eps, "M": M, "direct_tail": direct, "closed_form_tail": closed})
+                log_direct = tail_bound_direct_log(M, r, t, d, eps)
+                # (M+1+j)! >= (M+1)! j! for M >= 0 (each of the j extra
+                # factors M+2,...,M+1+j dominates its counterpart 1,...,j),
+                # so re-indexing m = M+1+j in the per-length series gives the
+                # exact closed-form bound C_* E_eps(x_t) x_t^{M+1}/((M+1)!)^eps
+                # with base x_t itself: B_pq*sqrt(t) = x_t (Lemma 5.1).
+                B_pq = per_length_x_t(r, t, d) / np.sqrt(t)
+                log_closed = tail_bound_closed_form_log(M, B_pq, t, eps)
+                tail_rows.append({
+                    "t": t, "eps": eps, "M": M,
+                    "log_direct_tail": log_direct, "log_closed_form_tail": log_closed,
+                    "direct_minus_closed_log": log_direct - log_closed,
+                })
     df_tail = pd.DataFrame(tail_rows)
     df_tail.to_csv(RESULTS_DIR / "exp4_tail_bound.csv", index=False)
 
@@ -117,6 +132,7 @@ def run() -> dict:
     summary = {
         "worst_ratio_direct_over_claimed_bound": worst_ratio,
         "per_length_bound_holds": bool(worst_ratio <= 1.0 + 1e-6),
+        "tail_bound_holds_fraction": float((df_tail["direct_minus_closed_log"] <= 1e-6).mean()),
         "sharpness_lower_bound_holds_fraction": float(df_sharp["lower_bound_holds"].mean()),
         "eps_fit_mean_abs_error": float(np.mean(np.abs(df_fit["eps_fit"] - df_fit["eps_input"]))),
         "variance_uniformity_holds": bool(df_unif["within_bounds"].all()),

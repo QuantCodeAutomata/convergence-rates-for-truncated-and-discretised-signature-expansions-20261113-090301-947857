@@ -80,6 +80,12 @@ def run(full: bool) -> dict:
             strong_off = float(np.mean(np.abs(diff_off) ** p) ** (1.0 / p))
             weak_on = float(abs(np.mean(diff_on)))
             weak_off = float(abs(np.mean(diff_off)))
+            # Monte Carlo standard error of the estimated mean E[diff_off]: used
+            # to tell a genuine violation of Proposition 5.17 (e.g. the case
+            # ||v|| odd, where the bound is exactly 0 by Proposition 2.5's
+            # vanishing odd-degree expected signature) from sampling noise
+            # around a true population mean of 0.
+            weak_off_se = float(np.std(diff_off, ddof=1) / np.sqrt(len(diff_off)))
 
             rows.append({
                 "N": N, "word": str(word), "weighted_length": w_len,
@@ -91,6 +97,7 @@ def run(full: bool) -> dict:
                 "strong_bound_on_grid_d1": strong_bound_rhs_grid(word, T, N),
                 "weak_error_off_grid": weak_off,
                 "weak_error_off_grid_x_N": weak_off * N,
+                "weak_error_off_grid_mc_se": weak_off_se,
                 "weak_error_on_grid": weak_on,
                 "weak_error_on_grid_x_N": weak_on * N,
                 "weak_bound": weak_bound_rhs(word, T, N, d),
@@ -105,7 +112,13 @@ def run(full: bool) -> dict:
         "words_strong": [str(w) for w in words_strong], "words_weak": [str(w) for w in words_weak],
         "strong_within_bound_off_grid_fraction": float((df["strong_error_off_grid"] <= 5 * df["strong_bound_off_grid"]).mean()),
         "strong_within_bound_on_grid_fraction": float((df["strong_error_on_grid"] <= 5 * df["strong_bound_on_grid_d1"]).mean()),
-        "weak_within_bound_fraction": float((df["weak_error_off_grid"] <= 5 * df["weak_bound"] + 1e-10).mean()),
+        # A row is within Proposition 5.17's bound if the estimated weak error
+        # is below 5x the theoretical rate, allowing a 6-sigma Monte Carlo
+        # margin for words where the population mean difference is 0 (the
+        # vanishing odd-degree case, where weak_bound itself is 0).
+        "weak_within_bound_fraction": float(
+            (df["weak_error_off_grid"] <= 5 * df["weak_bound"] + 6 * df["weak_error_off_grid_mc_se"]).mean()
+        ),
         "weak_error_vanishes_odd_degree": bool(
             df.loc[df["weighted_length"] % 2 == 1, "weak_error_off_grid"].abs().max() < 1e-2
         ),

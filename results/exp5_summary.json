@@ -1,0 +1,27 @@
+{
+  "N_ref": 2000,
+  "n_paths": 4000,
+  "N_levels": [
+    10,
+    50,
+    100,
+    500,
+    1000
+  ],
+  "words_strong": [
+    "(1,)",
+    "(1, 1)",
+    "(0, 1)",
+    "(1, 0)"
+  ],
+  "words_weak": [
+    "(1, 1)",
+    "(0, 1, 1)",
+    "(1, 0, 1)",
+    "(1, 1, 0)"
+  ],
+  "strong_within_bound_off_grid_fraction": 1.0,
+  "strong_within_bound_on_grid_fraction": 1.0,
+  "weak_within_bound_fraction": 1.0,
+  "weak_error_vanishes_odd_degree": true
+}

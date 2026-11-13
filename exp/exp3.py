@@ -57,9 +57,22 @@ def run(full: bool) -> dict:
     X_ref_T = log_price_ref_path[:, -1]
     price_exact, se_exact = put_price_mc(X_ref_T, config.EXP3_K)
 
+    # The raw signature levels up to M_max depend only on the grid N (not on
+    # the truncation level M tested against it), so they are built once per N
+    # and reused for every M via truncated_inner_product (restricting the
+    # coefficient family to words of length <= M), rather than rebuilding
+    # Chen's identity from scratch for each (M, N) pair.
     deltas_ref = _time_extend_two_dim(dW, dW_perp, T)
     key_T = checkpoint_fractions((T,), N_ref, T)[0]
     levels_ref_T = levels_along_path(deltas_ref, M_max, L_ALPHABET, [key_T])[key_T]
+
+    levels_by_N: dict[int, list[np.ndarray]] = {}
+    for N in N_levels:
+        dW_N = dW.reshape(n_paths, N, N_ref // N, 1).sum(axis=2)
+        dW_perp_N = dW_perp.reshape(n_paths, N, N_ref // N, 1).sum(axis=2)
+        deltas_N = _time_extend_two_dim(dW_N, dW_perp_N, T)
+        key_T_N = checkpoint_fractions((T,), N, T)[0]
+        levels_by_N[N] = levels_along_path(deltas_N, M_max, L_ALPHABET, [key_T_N])[key_T_N]
 
     rows = []
     for M in M_levels:
@@ -69,12 +82,7 @@ def run(full: bool) -> dict:
         strong_err = float(np.mean(np.abs(X_ref_T - X_M_ref) ** 2) ** 0.5)
         pricing_err = abs(price_exact - price_M_ref)
         for N in N_levels:
-            dW_N = dW.reshape(n_paths, N, N_ref // N, 1).sum(axis=2)
-            dW_perp_N = dW_perp.reshape(n_paths, N, N_ref // N, 1).sum(axis=2)
-            deltas_N = _time_extend_two_dim(dW_N, dW_perp_N, T)
-            key_T_N = checkpoint_fractions((T,), N, T)[0]
-            levels_N_T = levels_along_path(deltas_N, M_max, L_ALPHABET, [key_T_N])[key_T_N]
-            X_MN = truncated_inner_product(ell_phi, levels_N_T, M)
+            X_MN = truncated_inner_product(ell_phi, levels_by_N[N], M)
             price_MN, se_MN = put_price_mc(X_MN, config.EXP3_K)
             rows.append({
                 "M": M, "N": N,
