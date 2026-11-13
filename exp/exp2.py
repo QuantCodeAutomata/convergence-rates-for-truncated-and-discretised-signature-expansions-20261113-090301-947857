@@ -19,7 +19,13 @@ import matplotlib.pyplot as plt
 
 from data.generate_synthetic import brownian_increments, checkpoint_fractions, time_extended_deltas
 from src import config
-from src.fbm import build_ell_RL, geometric_ratio, proposition_4_6_lower, proposition_4_6_upper
+from src.fbm import (
+    build_ell_RL,
+    geometric_ratio,
+    proposition_4_6_lower,
+    proposition_4_6_upper,
+    reference_process,
+)
 from src.path_signatures import levels_along_path, truncated_inner_product
 
 RESULTS_DIR = Path(config.RESULTS_DIR)
@@ -30,24 +36,39 @@ def run(full: bool) -> dict:
     N_ref = config.EXP2_N_REF_PAPER if full else config.EXP2_N_REF_RUN
     n_paths = config.EXP2_N_PATHS_PAPER if full else config.EXP2_N_PATHS_RUN
     M_levels = config.EXP2_M_LEVELS
-    M_ref = config.EXP2_M_REF
     test_times = [t for t in config.EXP2_TEST_TIMES if t > 0.0]
     T = config.EXP2_T
     p = config.EXP2_STRONG_P
-    M_max = max(M_levels + (M_ref,))
+    M_max = max(M_levels)
 
-    print(f"[exp2] N_ref={N_ref} n_paths={n_paths} M_levels={M_levels} M_ref={M_ref}")
+    print(f"[exp2] N_ref={N_ref} n_paths={n_paths} M_levels={M_levels}")
 
     dW_ref = brownian_increments(n_paths, N_ref, T, dim=1, seed=config.RNG_SEED + 1)
     deltas_ref = time_extended_deltas(dW_ref, T)
     frac_ref = checkpoint_fractions(tuple(test_times), N_ref, T)
+    h_ref = T / N_ref
+
+    # Raw signature levels at every checkpoint are computed in a single pass
+    # over the N_ref-step grid (Chen's identity is applied incrementally and
+    # the running tensor is cached at each requested fraction), since the
+    # checkpoints share one underlying path and grid; H enters only through
+    # the coefficient family ell_full and the closed-form reference process,
+    # not through the signature levels themselves.
+    levels_by_key = levels_along_path(deltas_ref, M_max, L_ALPHABET, frac_ref)
 
     rows, bound_rows = [], []
     for H_label, H in (("H=0.3", config.EXP2_H), ("H=0.7", config.EXP2_H_ALT)):
         for t, key in zip(test_times, frac_ref):
+            k_seg, frac = key
+            assert np.isclose(frac, 1.0), "test times must fall on the N_ref grid"
+            grid_index = k_seg + 1
+            assert np.isclose(grid_index * h_ref, t, atol=1e-6)
+            # X_t(infinity, N_ref): the untruncated signature sum, computed in
+            # closed form from the Riemann-Liouville kernel (src.fbm.reference_process)
+            # rather than from a dense tensor truncated at a very large level.
+            X_ref = reference_process(dW_ref[:, :, 0], T, H, config.EXP2_MU, grid_index)
             ell_full = build_ell_RL(t, H, config.EXP2_MU, M_max)
-            levels = levels_along_path(deltas_ref, M_max, L_ALPHABET, [key])[key]
-            X_ref = truncated_inner_product(ell_full, levels, M_ref)
+            levels = levels_by_key[key]
             for M in M_levels:
                 X_M = truncated_inner_product(ell_full, levels, M)
                 diff = X_ref - X_M
@@ -78,7 +99,7 @@ def run(full: bool) -> dict:
     _plot(df, df_bounds)
 
     summary = {
-        "N_ref": N_ref, "n_paths": n_paths, "M_levels": list(M_levels), "M_ref": M_ref,
+        "N_ref": N_ref, "n_paths": n_paths, "M_levels": list(M_levels),
         "q_t_at_1": geometric_ratio(1.0, config.EXP2_MU),
         "fraction_within_upper_bound(x3)": float(sat["satisfies_upper"].mean()),
         "fraction_above_lower_bound(/3)": float(sat["satisfies_lower"].mean()),

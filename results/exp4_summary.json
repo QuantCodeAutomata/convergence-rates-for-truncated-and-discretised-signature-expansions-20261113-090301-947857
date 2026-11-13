@@ -1,0 +1,7 @@
+{
+  "worst_ratio_direct_over_claimed_bound": 1.0,
+  "per_length_bound_holds": true,
+  "sharpness_lower_bound_holds_fraction": 1.0,
+  "eps_fit_mean_abs_error": 0.13845169611683916,
+  "variance_uniformity_holds": true
+}

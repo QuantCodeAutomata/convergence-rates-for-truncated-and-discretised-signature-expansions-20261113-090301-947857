@@ -90,18 +90,18 @@ def run(full: bool) -> dict:
 
     # --- discretisation error: dense off-grid + on-grid times, M fixed ---
     dense_times = np.round(np.linspace(0.0, 1.0, 101), 6)
+    frac_ref_dense = checkpoint_fractions(tuple(dense_times), N_ref, T)
+    levels_ref_dense = levels_along_path(deltas_ref, M_max, L_ALPHABET, frac_ref_dense)
     disc_rows = []
     for N in N_levels:
         dW_N = aggregate_increments(dW_ref, N_ref, N)
         deltas_N = time_extended_deltas(dW_N, T)
         frac_N = checkpoint_fractions(tuple(dense_times), N, T)
         levels_N = levels_along_path(deltas_N, M_max, L_ALPHABET, frac_N)
-        frac_ref_dense = checkpoint_fractions(tuple(dense_times), N_ref, T)
         for M in config.EXP1_DISC_M_FIXED:
             for t, key_N, key_ref in zip(dense_times, frac_N, frac_ref_dense):
                 X_N = truncated_inner_product(ell, levels_N[key_N], M)
-                X_ref_full = truncated_inner_product(ell, levels_ref[key_ref], M) if key_ref in levels_ref \
-                    else _nearest_ref(levels_ref, frac_ref, ell, M, t)
+                X_ref_full = truncated_inner_product(ell, levels_ref_dense[key_ref], M)
                 diff = X_ref_full - X_N
                 strong_err = float(np.mean(np.abs(diff) ** p) ** (1.0 / p))
                 weak_err = float(abs(np.mean(diff)))
@@ -131,12 +131,6 @@ def run(full: bool) -> dict:
 
 def _interp(X_path: np.ndarray, k: int, f: float) -> np.ndarray:
     return (1 - f) * X_path[:, k] + f * X_path[:, k + 1]
-
-
-def _nearest_ref(levels_ref, frac_ref, ell, M, t):
-    idx = int(np.argmin([abs(tt - t) for tt in frac_ref]))
-    key = frac_ref[idx]
-    return truncated_inner_product(ell, levels_ref[key], M)
 
 
 def _plot_truncation(df: pd.DataFrame) -> None:

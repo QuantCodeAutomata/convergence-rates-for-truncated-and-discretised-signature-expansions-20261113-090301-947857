@@ -94,3 +94,41 @@ def proposition_4_6_lower(t: float, M: int, H: float, mu: float) -> float:
 def geometric_ratio(t: float, mu: float) -> float:
     """q_t = t / (t + mu)."""
     return t / (t + mu)
+
+
+def reference_process(
+    dW: np.ndarray, T: float, H: float, mu: float, grid_index: int
+) -> np.ndarray:
+    """X_t(infinity, N): the untruncated signature functional evaluated on the
+    piecewise-linear interpolation of W, i.e. the full (non-truncated) sum of
+    c_n(t) * W-hat_t^{0^{(x)n}1}(N) over all n.
+
+    Using (t+mu-s)^{H-1/2} = (t+mu)^{H-1/2} sum_n [a^{n-bar}/n!] (s/(t+mu))^n
+    with a=1/2-H, and W-hat_t^{0^{(x)n}1}(N) = int_0^t (s^n/n!) dW-tilde_s
+    (signature of the time-extended path against word 0^n1), the infinite sum
+    reconstructs exactly
+
+        X_t(infinity,N) = Gamma(H+1/2)^{-1} int_0^t (t+mu-s)^{H-1/2} dW-tilde_s,
+
+    computed in closed form segment by segment since dW-tilde is piecewise
+    constant on the uniform grid (no truncation level M, no dense tensors).
+
+    Parameters
+    ----------
+    dW : array (n_paths, N) grid increments of W on [0, T]
+    grid_index : the grid point index K such that t = K * (T / N)
+    """
+    n_paths, N = dW.shape
+    h = T / N
+    K = grid_index
+    if K == 0:
+        return np.zeros(n_paths)
+    t = K * h
+    k = np.arange(1, K + 1)
+    t_km1 = (k - 1) * h
+    t_k = k * h
+    # exact segment integral of (t+mu-s)^{H-1/2} ds over [t_{k-1}, t_k]
+    exponent = H + 0.5
+    weights = ((t + mu - t_km1) ** exponent - (t + mu - t_k) ** exponent) / exponent
+    log_gamma_H = gammaln(H + 0.5)
+    return (dW[:, :K] / h) @ weights / np.exp(log_gamma_H)

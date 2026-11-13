@@ -55,7 +55,6 @@ EXP2_N_PATHS_RUN = 4_000
 EXP2_M_LEVELS = (2, 3, 4, 5, 6, 7)
 EXP2_TEST_TIMES = tuple(np.round(np.arange(0.0, 1.0001, 0.05), 4))
 EXP2_STRONG_P = 3                  # not stated for this section; reuses the p=3 of Sec. 4.2 (uncertainty)
-EXP2_M_REF = 60                    # truncation level used as a numerical proxy for M=infinity
 
 # ---------------------------------------------------------------------------
 # Experiment 3: signature volatility model, put option pricing (Sec. 4.4 / 7, p.16, p.28)

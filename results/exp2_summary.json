@@ -1,0 +1,15 @@
+{
+  "N_ref": 2000,
+  "n_paths": 4000,
+  "M_levels": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "q_t_at_1": 0.9811320754716982,
+  "fraction_within_upper_bound(x3)": 1.0,
+  "fraction_above_lower_bound(/3)": 1.0
+}
